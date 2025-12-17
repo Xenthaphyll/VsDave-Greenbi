@@ -22,7 +22,7 @@ class CustomFPS extends TextField {
 
 		var format = new TextFormat();
 		format.font = fontInstance.fontName;
-		format.size = 24;
+		format.size = 16;
 		format.color = 0x11FF00;
 
 		defaultTextFormat = format;
