@@ -1,208 +1,218 @@
 package;
 
-import flixel.tweens.FlxTween;
-import flixel.tweens.FlxEase;
 import Controls.KeyboardScheme;
-import Controls.Control;
-import flash.text.TextField;
 import flixel.FlxG;
 import flixel.FlxSprite;
-import flixel.addons.display.FlxGridOverlay;
 import flixel.group.FlxGroup.FlxTypedGroup;
-import flixel.input.keyboard.FlxKey;
 import flixel.math.FlxMath;
 import flixel.text.FlxText;
+import flixel.tweens.FlxEase;
+import flixel.tweens.FlxTween;
 import flixel.util.FlxColor;
-import lime.utils.Assets;
 #if desktop
 import Discord.DiscordClient;
 #end
 
+typedef OptionEntry =
+{
+	var getLabel:Void->String;
+
+	var onToggle:Void->Void;
+}
+
 class OptionsMenu extends MusicBeatState
 {
-	var selector:FlxText;
+	static inline var ITEM_SPACING:Float  = 80;
+	static inline var ITEM_START_Y:Float  = 60;
+	static inline var ALPHA_IDLE:Float    = 0.40;
+	static inline var ALPHA_SELECTED:Float = 1.0;
+
 	var curSelected:Int = 0;
+	var options:Array<OptionEntry>;
 
-	var controlsStrings:Array<String> = [];
+	var grpControls:FlxTypedGroup<Alphabet>;
+	var selectorBar:FlxSprite;
+	var offsetText:FlxText;
+	var titleText:FlxText;
 
-	private var grpControls:FlxTypedGroup<Alphabet>;
-	var versionShit:FlxText;
-	override function create()
+	override function create():Void
 	{
+		super.create();
+
 		#if desktop
 		DiscordClient.changePresence("In the Options Menu", null);
 		#end
-		var menuBG:FlxSprite = new FlxSprite().loadGraphic(Paths.image('backgrounds/SUSSUS AMOGUS'));
-		controlsStrings = CoolUtil.coolStringFile((FlxG.save.data.dfjk ? 'DFJK' : 'WASD') + "\n" + (FlxG.save.data.newInput ? "Ghost Tapping" : "No Ghost Tapping") + "\n" + (FlxG.save.data.downscroll ? 'Downscroll' : 'Upscroll') + "\nAccuracy " + (FlxG.save.data.accuracyDisplay ? "off" : "on") + "\n" + (FlxG.save.data.eyesores ? 'Eyesores Enabled' : 'Eyesores Disabled') + "\n" + (FlxG.save.data.donoteclick ? "Hitsounds On" : "Hitsounds Off") + "\n" + (FlxG.save.data.freeplayCuts ? "Freeplay Cutscenes On" : "Freeplay Cutscenes Off"));
-		
-		trace(controlsStrings);
 
-		menuBG.color = 0xFFea71fd;
-		menuBG.setGraphicSize(Std.int(menuBG.width * 1.1));
-		menuBG.updateHitbox();
-		menuBG.screenCenter();
-		menuBG.antialiasing = true;
-		menuBG.loadGraphic(MainMenuState.randomizeBG());
-		add(menuBG);
+		buildOptions();
+		buildUI();
+		changeSelection(0);
+	}
+
+	function buildOptions():Void
+	{
+		options = [
+			{
+				getLabel: () -> 'Controls: ' + (FlxG.save.data.dfjk ? 'DFJK' : 'WASD'),
+				onToggle: () ->
+				{
+					FlxG.save.data.dfjk = !FlxG.save.data.dfjk;
+					controls.setKeyboardScheme(
+						FlxG.save.data.dfjk ? KeyboardScheme.Solo : KeyboardScheme.Duo(true),
+						true
+					);
+				}
+			},
+			{
+				getLabel: () -> 'Ghost Tapping: ' + boolLabel(FlxG.save.data.newInput),
+				onToggle: () -> FlxG.save.data.newInput = !FlxG.save.data.newInput
+			},
+			{
+				getLabel: () -> (FlxG.save.data.downscroll ? 'Downscroll' : 'Upscroll'),
+				onToggle: () -> FlxG.save.data.downscroll = !FlxG.save.data.downscroll
+			},
+			{
+				getLabel: () -> 'Accuracy Display: ' + boolLabel(FlxG.save.data.accuracyDisplay),
+				onToggle: () -> FlxG.save.data.accuracyDisplay = !FlxG.save.data.accuracyDisplay
+			},
+			{
+				getLabel: () -> 'Eyesores: '   + boolLabel(FlxG.save.data.eyesores),
+				onToggle: () -> FlxG.save.data.eyesores = !FlxG.save.data.eyesores
+			},
+			{
+				getLabel: () -> 'Hitsounds: '  + boolLabel(FlxG.save.data.donoteclick),
+				onToggle: () -> FlxG.save.data.donoteclick = !FlxG.save.data.donoteclick
+			},
+			{
+				getLabel: () -> 'Freeplay Cutscenes: ' + boolLabel(FlxG.save.data.freeplayCuts),
+				onToggle: () -> FlxG.save.data.freeplayCuts = !FlxG.save.data.freeplayCuts
+			}
+		];
+	}
+
+	function buildUI():Void
+	{
+		var bg:FlxSprite = new FlxSprite().loadGraphic(MainMenuState.randomizeBG());
+		bg.setGraphicSize(Std.int(bg.width * 1.1));
+		bg.updateHitbox();
+		bg.screenCenter();
+		bg.antialiasing = true;
+		add(bg);
+
+		var overlay:FlxSprite = new FlxSprite(0, 0).makeGraphic(FlxG.width, FlxG.height, 0xBB000000);
+		overlay.scrollFactor.set();
+		add(overlay);
+
+		titleText = new FlxText(0, 14, FlxG.width, "OPTIONS", 52);
+		titleText.setFormat("VCR OSD Mono", 52, FlxColor.WHITE, CENTER,
+		                    FlxTextBorderStyle.OUTLINE, 0xFF222222);
+		titleText.scrollFactor.set();
+		titleText.alpha = 0;
+		add(titleText);
+		FlxTween.tween(titleText, {alpha: 1, y: 20}, 0.45, {ease: FlxEase.quartOut});
 
 		grpControls = new FlxTypedGroup<Alphabet>();
 		add(grpControls);
 
-		for (i in 0...controlsStrings.length)
+		for (i in 0...options.length)
 		{
-				var controlLabel:Alphabet = new Alphabet(0, (70 * i) + 30, controlsStrings[i], true, false);
-				controlLabel.screenCenter(X);
-				controlLabel.itemType = 'Vertical';
-				controlLabel.isMenuItem = true;
-				controlLabel.targetY = i;
-				grpControls.add(controlLabel);
-			// DONT PUT X IN THE FIRST PARAMETER OF new ALPHABET() !!
+			var label:Alphabet = new Alphabet(0, (ITEM_SPACING * i) + ITEM_START_Y,
+			                                  options[i].getLabel(), true, false);
+			label.screenCenter(X);
+			label.itemType   = 'Vertical';
+			label.isMenuItem = true;
+			label.targetY    = i;
+			label.alpha      = ALPHA_IDLE;
+			grpControls.add(label);
 		}
 
+		var hintBG:FlxSprite = new FlxSprite(0, FlxG.height - 26).makeGraphic(FlxG.width, 26, 0xDD000000);
+		hintBG.scrollFactor.set();
+		add(hintBG);
 
-		versionShit = new FlxText(5, FlxG.height - 18, 0, "Offset (Left, Right): " + FlxG.save.data.offset, 12);
-		versionShit.scrollFactor.set();
-		versionShit.setFormat("VCR OSD Mono", 16, FlxColor.WHITE, LEFT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
-		add(versionShit);
-
-		super.create();
+		offsetText = new FlxText(8, FlxG.height - 21, 0, buildOffsetString(), 12);
+		offsetText.scrollFactor.set();
+		offsetText.setFormat("VCR OSD Mono", 12, FlxColor.WHITE, LEFT);
+		add(offsetText);
 	}
 
-	override function update(elapsed:Float)
+	override function update(elapsed:Float):Void
 	{
 		super.update(elapsed);
 
-			if (controls.BACK)
-				FlxG.switchState(new MainMenuState());
-			if (controls.UP_P)
-				changeSelection(-1);
-			if (controls.DOWN_P)
-				changeSelection(1);
-			
-			if (controls.RIGHT_R)
-			{
-				FlxG.save.data.offset++;
-				versionShit.text = "Offset (Left, Right): " + FlxG.save.data.offset;
-			}
+		if (controls.BACK)
+		{
+			FlxG.save.flush();
+			FlxG.switchState(new MainMenuState());
+			return;
+		}
 
-			if (controls.LEFT_R)
-				{
-					FlxG.save.data.offset--;
-					versionShit.text = "Offset (Left, Right): " + FlxG.save.data.offset;
-				}
-	
+		if (controls.UP_P)   changeSelection(-1);
+		if (controls.DOWN_P) changeSelection(1);
 
-			if (controls.ACCEPT)
-			{
-				grpControls.remove(grpControls.members[curSelected]);
-				switch(curSelected)
-				{
-					case 0:
-						FlxG.save.data.dfjk = !FlxG.save.data.dfjk;
-						var ctrl:Alphabet = new Alphabet(0, (70 * curSelected) + 30, (FlxG.save.data.dfjk ? 'DFJK' : 'WASD'), true, false);
-						ctrl.isMenuItem = true;
-						ctrl.targetY = curSelected;
-						ctrl.screenCenter(X);
-						ctrl.itemType = 'Vertical';
-						grpControls.add(ctrl);
-						if (FlxG.save.data.dfjk)
-							controls.setKeyboardScheme(KeyboardScheme.Solo, true);
-						else
-							controls.setKeyboardScheme(KeyboardScheme.Duo(true), true);
-						
-					case 1:
-						FlxG.save.data.newInput = !FlxG.save.data.newInput;
-						var ctrl:Alphabet = new Alphabet(0, (70 * curSelected) + 30, (FlxG.save.data.newInput ? "Ghost Tapping" : "No Ghost Tapping"), true, false);
-						ctrl.isMenuItem = true;
-						ctrl.targetY = curSelected - 1;
-						ctrl.screenCenter(X);
-						ctrl.itemType = 'Vertical';
-						grpControls.add(ctrl);
-					case 2:
-						FlxG.save.data.downscroll = !FlxG.save.data.downscroll;
-						var ctrl:Alphabet = new Alphabet(0, (70 * curSelected) + 30, (FlxG.save.data.downscroll ? 'Downscroll' : 'Upscroll'), true, false);
-						ctrl.isMenuItem = true;
-						ctrl.targetY = curSelected - 2;
-						ctrl.screenCenter(X);
-						ctrl.itemType = 'Vertical';
-						grpControls.add(ctrl);
-					case 3:
-						FlxG.save.data.accuracyDisplay = !FlxG.save.data.accuracyDisplay;
-						var ctrl:Alphabet = new Alphabet(0, (70 * curSelected) + 30, "Accuracy " + (FlxG.save.data.accuracyDisplay ? "off" : "on"), true, false);
-						ctrl.isMenuItem = true;
-						ctrl.targetY = curSelected - 3;
-						ctrl.screenCenter(X);
-						ctrl.itemType = 'Vertical';
-						grpControls.add(ctrl);
-					case 4:
-						FlxG.save.data.eyesores = !FlxG.save.data.eyesores;
-						var ctrl:Alphabet = new Alphabet(0, (70 * curSelected) + 30, (FlxG.save.data.eyesores ? 'Eyesores Enabled' : 'Eyesores Disabled'), true, false);
-						ctrl.isMenuItem = true;
-						ctrl.targetY = curSelected - 4;
-						ctrl.screenCenter(X);
-						ctrl.itemType = 'Vertical';
-						grpControls.add(ctrl);
-					case 5:
-						FlxG.save.data.donoteclick = !FlxG.save.data.donoteclick;
-						var ctrl:Alphabet = new Alphabet(0, (70 * curSelected) + 30, (FlxG.save.data.donoteclick ? "Hitsounds On" : "Hitsounds Off"), true, false);
-						ctrl.isMenuItem = true;
-						ctrl.targetY = curSelected - 5;
-						ctrl.screenCenter(X);
-						ctrl.itemType = 'Vertical';
-						grpControls.add(ctrl);
-					case 6:
-						FlxG.save.data.freeplayCuts = !FlxG.save.data.freeplayCuts;
-						var ctrl:Alphabet = new Alphabet(0, (70 * curSelected) + 30, (FlxG.save.data.freeplayCuts ? "Freeplay Cutscenes On" : "Freeplay Cutscenes Off"), true, false);
-						ctrl.isMenuItem = true;
-						ctrl.targetY = curSelected - 6;
-						ctrl.screenCenter(X);
-						ctrl.itemType = 'Vertical';
-						grpControls.add(ctrl);
-						
-				}
-			}
+		if (controls.RIGHT_R) adjustOffset(1);
+		if (controls.LEFT_R)  adjustOffset(-1);
+
+		if (controls.ACCEPT)  toggleCurrentOption();
 	}
 
-	var isSettingControl:Bool = false;
-
-	override function beatHit()
+	function changeSelection(delta:Int):Void
 	{
-		super.beatHit();
-		FlxTween.tween(FlxG.camera, {zoom:1.05}, 0.3, {ease: FlxEase.quadOut, type: BACKWARD});
-	}
+		if (delta != 0)
+			FlxG.sound.play(Paths.sound('scrollMenu'), 0.4);
 
-	function changeSelection(change:Int = 0)
-	{
-		#if !switch
-		// NGio.logEvent('Fresh');
-		#end
-		
-		FlxG.sound.play(Paths.sound('scrollMenu'), 0.4);
+		curSelected = FlxMath.wrap(curSelected + delta, 0, grpControls.length - 1);
 
-		curSelected += change;
-
-		if (curSelected < 0)
-			curSelected = grpControls.length - 1;
-		if (curSelected >= grpControls.length)
-			curSelected = 0;
-
-		// selector.y = (70 * curSelected) + 30;
-
-		var bullShit:Int = 0;
-
+		var i:Int = 0;
 		for (item in grpControls.members)
 		{
-			item.targetY = bullShit - curSelected;
-			bullShit++;
-
-			item.alpha = 0.6;
-			// item.setGraphicSize(Std.int(item.width * 0.8));
-
-			if (item.targetY == 0)
-			{
-				item.alpha = 1;
-				// item.setGraphicSize(Std.int(item.width));
-			}
+			item.targetY = i - curSelected;
+			item.alpha   = (item.targetY == 0) ? ALPHA_SELECTED : ALPHA_IDLE;
+			i++;
 		}
 	}
+
+	function toggleCurrentOption():Void
+	{
+		var opt:OptionEntry = options[curSelected];
+		opt.onToggle();
+		refreshLabel(curSelected);
+
+		FlxG.camera.flash(0x44FFFFFF, 0.12);
+		FlxG.sound.play(Paths.sound('confirmMenu'), 0.55);
+	}
+
+	function refreshLabel(index:Int):Void
+	{
+		var old:Alphabet = grpControls.members[index];
+		if (old == null) return;
+
+		var fresh:Alphabet = new Alphabet(0, 0, options[index].getLabel(), true, false);
+		fresh.screenCenter(X);
+		fresh.itemType   = 'Vertical';
+		fresh.isMenuItem = true;
+		fresh.targetY    = old.targetY;
+		fresh.alpha      = old.alpha;
+
+		grpControls.remove(old, true);
+		grpControls.insert(index, fresh);
+	}
+
+	function adjustOffset(delta:Int):Void
+	{
+		FlxG.save.data.offset += delta;
+		offsetText.text = buildOffsetString();
+	}
+
+	override function beatHit():Void
+	{
+		super.beatHit();
+		FlxTween.tween(FlxG.camera, {zoom: 1.04}, 0.25,
+		               {ease: FlxEase.quadOut, type: BACKWARD});
+	}
+
+	static inline function boolLabel(v:Bool):String
+		return v ? 'ON' : 'OFF';
+
+	function buildOffsetString():String
+		return 'Note Offset: ${FlxG.save.data.offset} ms   [ ← / → to adjust ]   [ ENTER to toggle ]   [ ESC back ]';
 }

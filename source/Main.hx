@@ -8,6 +8,7 @@ import openfl.display.Sprite;
 import openfl.events.Event;
 import openfl.text.Font;
 
+
 class Main extends Sprite
 {
 	var gameWidth:Int = 1280;
@@ -83,7 +84,7 @@ class Main extends Sprite
 		#end
 
 		#if !mobile
-		addChild(new CustomFPS());
+		// addChild(new CustomFPS()); no
 		#end
 	}
 }

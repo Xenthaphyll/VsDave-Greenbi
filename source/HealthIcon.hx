@@ -5,12 +5,50 @@ import flixel.math.FlxMath;
 
 class HealthIcon extends FlxSprite
 {
-	/**
-	 * Used for FreeplayState! If you use it elsewhere, prob gonna annoying
-	 */
+	static inline final ICON_SIZE:Int = 150;
 	public var sprTracker:FlxSprite;
 
-	public var noAaChars:Array<String> = [
+	static final CHAR_FRAMES:Map<String, Array<Int>> = [
+		'bf'                          => [0, 1],
+		'bf-christmas'                => [0, 1],
+		'bf-pixel'                    => [2, 3],
+		'bf-old'                      => [3, 4],
+		'face'                        => [5, 6],
+		'gf'                          => [7, 7],
+		'gf-pixel'                    => [7, 7],
+		'dave'                        => [8, 9],
+		'dave-annoyed'                => [8, 9],
+		'dave-splitathon'             => [8, 9],
+		'dave-angey'                  => [10, 11],
+		'dave-3d-standing-bruh-what'  => [28, 29],
+		'dave-annoyed-3d'             => [38, 39],
+		'dave-old'                    => [36, 37],
+		'marcello-dave'               => [8, 9],
+		'bambi'                       => [12, 13],
+		'bambi-splitathon'            => [12, 13],
+		'bambi-new'                   => [12, 13],
+		'bambi-farmer-beta'           => [12, 13],
+		'bambi-loser'                 => [13, 13],
+		'bambi-stupid'                => [18, 19],
+		'bambi-3d'                    => [20, 21],
+		'bambi-unfair'                => [40, 41],
+		'bambi-old'                   => [18, 19],
+		'bambi-angey'                 => [24, 25],
+		'bambi-bevel'                 => [30, 31],
+		'tristan'                     => [14, 15],
+		'tristan-golden'              => [22, 23],
+		'tristan-beta'                => [34, 35],
+		'the-duo'                     => [16, 17],
+		'what-lmao'                   => [18, 19],
+		'senpai'                      => [26, 27],
+		'senpai-angry'                => [26, 27],
+		'spirit'                      => [32, 33],
+		'greenbi'                     => [42, 43],
+		'greenbi-mad'                 => [42, 43],
+		'tave'                        => [44, 45],
+	];
+
+	static final NO_ANTIALIAS:Array<String> = [
 		'dave-angey',
 		'dave-annoyed-3d',
 		'bambi-3d',
@@ -20,67 +58,33 @@ class HealthIcon extends FlxSprite
 		'bf-pixel',
 		'gf-pixel',
 		'bambi-unfair',
-		'tave'
+		'tave',
 	];
 
 	public function new(char:String = 'bf', isPlayer:Bool = false)
 	{
 		super();
-		loadGraphic(Paths.image('iconGrid'), true, 150, 150);
+		loadGraphic(Paths.image('iconGrid'), true, ICON_SIZE, ICON_SIZE);
 
-		antialiasing = true;
-		animation.add('bf', [0, 1], 0, false, isPlayer);
-		animation.add('bf-christmas', [0, 1], 0, false, isPlayer);
-		animation.add('bf-pixel', [2, 2], 0, false, isPlayer);
-		animation.add('bf-old', [3, 4], 0, false, isPlayer);
-		animation.add('face', [5, 6], 0, false, isPlayer);
-		animation.add('gf', [7], 0, false, isPlayer);
-		animation.add('dave', [8, 9], 0, false, isPlayer);
-		animation.add('dave-annoyed', [8, 9], 0, false, isPlayer);
-		animation.add('dave-angey', [10, 11], 0, false, isPlayer);
-		animation.add('dave-splitathon', [8, 9], 0, false, isPlayer);
-		animation.add('dave-3d-standing-bruh-what', [28, 29], 0, false, isPlayer);
-		animation.add('dave-annoyed-3d', [38, 39], 0, false, isPlayer);
-		animation.add('dave-old', [36, 37], 0, false, isPlayer);
-		animation.add('marcello-dave', [8, 9], 0, false, isPlayer);
+		for (name => frames in CHAR_FRAMES)
+			animation.add(name, frames, 0, false, isPlayer);
 
-		animation.add('bambi', [12, 13], 0, false, isPlayer);
-		animation.add('bambi-splitathon', [12, 13], 0, false, isPlayer);
-		animation.add('bambi-new', [12, 13], 0, false, isPlayer);
-		animation.add('bambi-farmer-beta', [12, 13], 0, false, isPlayer);
+		antialiasing = !NO_ANTIALIAS.contains(char);
 
-		animation.add('bambi-loser', [13, 13], 0, false, isPlayer);
+		var anim = CHAR_FRAMES.exists(char) ? char : 'face';
+		animation.play(anim);
 
-		animation.add('bambi-stupid', [18, 19], 0, false, isPlayer);
-		animation.add('bambi-3d', [20, 21], 0, false, isPlayer);
-		animation.add('bambi-unfair', [40, 41], 0, false, isPlayer);
-		animation.add('bambi-old', [18, 19], 0, false, isPlayer);
-		animation.add('bambi-angey', [24, 25], 0, false, isPlayer);
-		animation.add('bambi-bevel', [30, 31], 0, false, isPlayer);
-
-		animation.add('tristan', [14, 15], 0, false, isPlayer);
-		animation.add('tristan-golden', [22, 23], 0, false, isPlayer);
-		animation.add('tristan-beta', [34, 35], 0, false, isPlayer);
-
-		animation.add('the-duo', [16, 17], 0, false, isPlayer);
-		animation.add('what-lmao', [18, 19], 0, false, isPlayer);
-		animation.add('greenbi', [42, 43], 0, false, isPlayer);
-		animation.add('greenbi-mad', [42, 43], 0, false, isPlayer);
-		animation.add('greenbi-mad', [42, 43], 0, false, isPlayer);
-		animation.add('tave', [44, 45], 0, false, isPlayer);
-		animation.play(char);
-		if (noAaChars.contains(char))
-		{
-			antialiasing = false;
-		}
 		scrollFactor.set();
 	}
 
 	override function update(elapsed:Float)
 	{
 		super.update(elapsed);
-		offset.set(Std.int(FlxMath.bound(width - 150,0)),Std.int(FlxMath.bound(height - 150,0)));
 
+		offset.set(
+			Std.int(FlxMath.bound(width  - ICON_SIZE, 0)),
+			Std.int(FlxMath.bound(height - ICON_SIZE, 0))
+		);
 
 		if (sprTracker != null)
 			setPosition(sprTracker.x + sprTracker.width + 10, sprTracker.y - 30);

@@ -46,7 +46,7 @@ class CharacterSelectState extends MusicBeatState
 
 	var notestuffs:Array<String> = ['LEFT', 'DOWN', 'UP', 'RIGHT'];
 
-	public var isDebug:Bool = false; //CHANGE THIS TO FALSE BEFORE YOU COMMIT RETARDS
+	public var isDebug:Bool = true; //CHANGE THIS TO FALSE BEFORE YOU COMMIT RETARDS
 
 	public var PressedTheFunny:Bool = false;
 
