@@ -2698,6 +2698,8 @@ class PlayState extends MusicBeatState
 
 		if (note.isSustainNote)
 			health += 0.2;
+		else
+			health += 0.023;
 
 		if (darkLevels.contains(curStage) && SONG.song.toLowerCase() != "polygonized")
 			boyfriend.color = nightColor;
