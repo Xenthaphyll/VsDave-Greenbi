@@ -78,6 +78,7 @@ class PlayState extends MusicBeatState
 
 	public var stupidx:Float = 0;
 	public var stupidy:Float = 0;
+	public var songPercent:Float = 0;
 	public var updatevels:Bool = false;
 
 	public var hasTriggeredDumbshit:Bool = false;
@@ -156,6 +157,9 @@ class PlayState extends MusicBeatState
 	private var healthBarBG:FlxSprite;
 	private var healthBar:FlxBar;
 
+	private var timeBar:FlxBar;
+	private var timeBarBG:FlxSprite;
+
 	private var generatedMusic:Bool = false;
 	private var shakeCam:Bool = false;
 	private var startingSong:Bool = false;
@@ -170,6 +174,7 @@ class PlayState extends MusicBeatState
 	private var camDialogue:FlxCamera;
 	private var camHUD:FlxCamera;
 	private var camGame:FlxCamera;
+	private var timeTxt:FlxText;
 
 	var dialogue:Array<String> = ['blah blah blah', 'coolswag'];
 
@@ -447,7 +452,7 @@ class PlayState extends MusicBeatState
 				dad.x += 100;
 			case 'tave':
 				dad.y += 160;
-				dad.x += 250;
+				dad.x += 180;
 		}
 
 		dadmirror.x += 150;
@@ -566,10 +571,32 @@ class PlayState extends MusicBeatState
 			Std.int(healthBarBG.width - 8), Std.int(healthBarBG.height - 8), this, 'health', 0, 2);
 		healthBar.scrollFactor.set();
 
+		timeBarBG = new FlxSprite(0, 15).makeGraphic(FlxG.width - 200, 20, FlxColor.BLACK);
+		timeBarBG.screenCenter(X);
+		timeBarBG.scrollFactor.set();
+		timeBarBG.cameras = [camHUD];
+		add(timeBarBG);
+
+		timeBar = new FlxBar(timeBarBG.x + 2, timeBarBG.y + 2, LEFT_TO_RIGHT,
+			Std.int(timeBarBG.width - 4), Std.int(timeBarBG.height - 4),
+			this, 'songPercent', 0, 1);
+		timeBar.createFilledBar(0xFF000000, 0xFF3CFF00);
+		timeBar.scrollFactor.set();
+		timeBar.cameras = [camHUD];
+		add(timeBar);
+
+		timeTxt = new FlxText(0, timeBarBG.y + 25, 0, "0:00 / 0:00", 16);
+		timeTxt.setFormat(Paths.font("comic.ttf"), 16, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+		timeTxt.scrollFactor.set();
+		timeTxt.borderSize = 1.25;
+		timeTxt.cameras = [camHUD];
+		add(timeTxt);
+		timeTxt.alpha = 0;
+
 		if (SONG.player2 == "tave")
 			healthBar.createFilledBar(0xFFFF0000, 0xFF31B0D1);
 		else
-			healthBar.createFilledBar(0xFF00FF3C, 0xFF31B0D1);
+			healthBar.createFilledBar(0xFF31B0D1, 0xFF00FF3C);
 
 		add(healthBar);
 
@@ -684,12 +711,22 @@ class PlayState extends MusicBeatState
 		switch (bgName)
 		{
 			case 'tave-field':
-				defaultCamZoom = 0.8;
+				defaultCamZoom = 0.65;
 				var bgsky:FlxSprite = new FlxSprite(-600, -200).loadGraphic(Paths.image('tave/sky'));
-				var bg:FlxSprite = new FlxSprite(200, 700).loadGraphic(Paths.image('tave/grass'));
+				bgsky.scrollFactor.set(0.2, 0.2);
+				var bg:FlxSprite = new FlxSprite(200, 600).loadGraphic(Paths.image('tave/grass'));
 				bg.setGraphicSize(Std.int(bg.width * 2));
+				bg.updateHitbox();
+				var bg1:FlxSprite = new FlxSprite(200 - bg.width, 600).loadGraphic(Paths.image('tave/grass'));
+				bg1.setGraphicSize(Std.int(bg1.width * 2));
+				bg1.updateHitbox();
+				var bg2:FlxSprite = new FlxSprite(200 + bg.width, 600).loadGraphic(Paths.image('tave/grass'));
+				bg2.setGraphicSize(Std.int(bg2.width * 2));
+				bg2.updateHitbox();
 				add(bgsky);
+				add(bg1);
 				add(bg);
+				add(bg2);
 				var testshader:Shaders.GlitchEffect = new Shaders.GlitchEffect();
 				testshader.waveAmplitude = 0.008;
 				testshader.waveFrequency = 80;
@@ -1087,7 +1124,9 @@ class PlayState extends MusicBeatState
 					ready.updateHitbox();
 					if (curStage.startsWith('school'))
 						ready.setGraphicSize(Std.int(ready.width * daPixelZoom));
+					ready.updateHitbox();
 					ready.screenCenter();
+					ready.cameras = [camHUD];
 					add(ready);
 					FlxTween.tween(ready, {y: ready.y + 100, alpha: 0}, Conductor.crochet / 1000, {
 						ease: FlxEase.cubeInOut,
@@ -1101,7 +1140,9 @@ class PlayState extends MusicBeatState
 					set.scrollFactor.set();
 					if (curStage.startsWith('school'))
 						set.setGraphicSize(Std.int(set.width * daPixelZoom));
+					set.updateHitbox();
 					set.screenCenter();
+					set.cameras = [camHUD];
 					add(set);
 					FlxTween.tween(set, {y: set.y + 100, alpha: 0}, Conductor.crochet / 1000, {
 						ease: FlxEase.cubeInOut,
@@ -1117,6 +1158,7 @@ class PlayState extends MusicBeatState
 						go.setGraphicSize(Std.int(go.width * daPixelZoom));
 					go.updateHitbox();
 					go.screenCenter();
+					go.cameras = [camHUD];
 					add(go);
 					FlxTween.tween(go, {y: go.y + 100, alpha: 0}, Conductor.crochet / 1000, {
 						ease: FlxEase.cubeInOut,
@@ -1400,20 +1442,39 @@ class PlayState extends MusicBeatState
 	{
 		super.update(elapsed);
 
+	if (!startingSong && FlxG.sound.music != null)
+		{
+			songPercent = Conductor.songPosition / FlxG.sound.music.length;
+
+			var elapsed:Int    = Math.floor(Conductor.songPosition / 1000);
+			var total:Int      = Math.floor(FlxG.sound.music.length / 1000);
+			var elMins:Int     = Math.floor(elapsed / 60);
+			var elSecs:String  = StringTools.lpad(Std.string(elapsed % 60), "0", 2);
+			var totMins:Int    = Math.floor(total / 60);
+			var totSecs:String = StringTools.lpad(Std.string(total % 60), "0", 2);
+
+			timeTxt.text = '$elMins:$elSecs / $totMins:$totSecs';
+			timeTxt.x = timeBarBG.x + (timeBarBG.width / 2) - (timeTxt.width / 2);
+			timeTxt.y = timeBarBG.y + (timeBarBG.height / 2) - (timeTxt.height / 2);
+
+			if (timeTxt.alpha < 1)
+				timeTxt.alpha = Math.min(timeTxt.alpha + (FlxG.elapsed * 2), 1);
+		}
+
 		if (spinCam)
 		{
 			FlxG.camera.angle += 60 * elapsed;
 		}
 		else if (resetCam)
 		{
-			if (Math.abs(FlxG.camera.angle) <= 1)
+			if (Math.abs(FlxG.camera.angle) <= 0.1)
 			{
 				FlxG.camera.angle = 0;
 				resetCam = false;
 			}
 			else
 			{
-				FlxG.camera.angle *= 0.25;
+				FlxG.camera.angle = FlxMath.lerp(FlxG.camera.angle, 0, Math.min(1, elapsed * 5));
 			}
 		}
 
@@ -2368,7 +2429,7 @@ class PlayState extends MusicBeatState
 				numScore.velocity.y -= FlxG.random.int(140, 160);
 				numScore.velocity.x = FlxG.random.float(-5, 5);
 
-				if (combo >= 10 || combo == 0)
+				if (combo >= 0 || combo == 0)
 					add(numScore);
 
 				FlxTween.tween(numScore, {alpha: 0}, 0.2, {
